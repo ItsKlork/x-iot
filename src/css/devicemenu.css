@@ -1,0 +1,16 @@
+.MuiAlert-icon {
+  margin-right: 0;
+  margin-left: 12px;
+}
+
+.MuiAlert-message {
+  font-family: "Heebo";
+  font-size: 1.1em;
+  padding: 0;
+}
+
+.MuiAlert-action {
+  margin-left: -6px !important;
+  margin-right: auto !important;
+  padding: 0 !important;
+}
