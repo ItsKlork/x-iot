@@ -7,5 +7,5 @@ The project was created as a part of my final Networking and Cybersecurity class
 
 ## Setup
 
-Before starting the development environment of the administrative web interface, make sure to setup the backend from [the xIOT-Server repository](https://github.com/ItsKlork/x-iot-server).
+Before starting the development environment of the administrative web interface, make sure to setup the backend from the [xIOT-Server repository](https://github.com/ItsKlork/x-iot-server).
 To setup the development environment, just `git clone` this project and run `npm start`.
