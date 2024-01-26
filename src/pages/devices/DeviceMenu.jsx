@@ -1,8 +1,9 @@
-import { useParams } from "react-router-dom";
-import { useEffect, useState, Fragment } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState, Fragment, useContext } from "react";
 import { Alert, Collapse } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import "../../css/devicemenu.css";
+import { WebSocketContext } from "../../components/WSContext";
 
 const deviceDataDummy = [
   {
@@ -172,7 +173,7 @@ const deviceDataDummy = [
     deviceType: "door",
     uuid: "8897349b-6756-4745-b11d-56691ec02675",
     iconColor: "#b38f6b",
-    state: {
+    settings: {
       open_state: false,
     },
   },
@@ -188,22 +189,28 @@ const deviceDataDummy = [
 ];
 
 const formTypes = {
-  camera: [
-    { field: "camera_name", type: "text", label: "שם המצלמה" },
+  CAMERA: [
     {
-      field: "enable_face_recognition",
+      field: "name",
+      type: "text",
+      label: "שם המצלמה",
+    },
+    {
+      field: "faceRecognition",
       type: "checkbox",
       label: "הפעל זיהוי פנים",
-      valueFromState: "face_recognition",
     },
   ],
-  door: [
-    { field: "door_name", type: "text", label: "שם הדלת" },
+  DOOR_LOCK: [
     {
-      field: "door_toggle",
+      field: "name",
+      type: "text",
+      label: "שם הדלת",
+    },
+    {
+      field: "openState",
       type: "checkbox",
       label: "פתח/סגור דלת",
-      valueFromState: "open_state",
     },
   ],
 };
@@ -218,29 +225,54 @@ function DeviceMenu(props) {
   const [formState, setFormState] = useState(null);
   const [message, setMessage] = useState(null); // { type: "success" (mui.Alert.severity), message: "Saved successfully"}
 
+  const navigate = useNavigate();
+
+  const { subscribe, send } = useContext(WebSocketContext);
+
   async function saveDeviceSettings(e) {
     console.log("Saving", formState);
     setMessage({ type: "info", message: "שומר..." });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    send(
+      JSON.stringify({
+        type: "module",
+        module_uuid: "41747d8e-a73d-4087-b0d6-fe680cc31c00",
+        data: {
+          action: "set_device_settings",
+          device_uuid: deviceId,
+          settings: formState,
+        },
+      })
+    );
+    //await new Promise((resolve) => setTimeout(resolve, 1000));
     setMessage({ type: "success", message: "הגדרות המכשיר נשמרו בהצלחה" });
     // setMessage({ type: "error", message: "לא ניתן לקרוא למכשיר בשם זה" });
   }
 
   useEffect(() => {
-    (async () => {
-      const currentDevice = findDevice(deviceId);
+    if (!deviceId) {
+      navigate("/devices");
+      return;
+    }
+    subscribe("device", (data) => {
+      const currentDevice = JSON.parse(data);
+      console.log("device got", currentDevice);
       const formTemplate = formTypes[currentDevice.deviceType];
       const formStateBuilder = {};
       formTemplate.forEach((field) => {
-        formStateBuilder[field.field] =
-          "valueFromState" in field
-            ? currentDevice.state[field.valueFromState]
-            : "";
+        formStateBuilder[field.field] = currentDevice.settings[field.field];
       });
       setDevice(currentDevice);
       setFormState(formStateBuilder);
-    })();
-  }, [deviceId, device]);
+    });
+
+    send(
+      JSON.stringify({
+        type: "module",
+        module_uuid: "41747d8e-a73d-4087-b0d6-fe680cc31c00",
+        data: { action: "get_device", device_uuid: deviceId },
+      })
+    );
+  }, [deviceId, navigate, send, subscribe]);
 
   if (!device)
     return (
@@ -253,12 +285,14 @@ function DeviceMenu(props) {
   return (
     <div className="m-4">
       <p className="mb-0" style={{ fontWeight: 700, fontSize: "1.2em" }}>
-        עריכת <span style={{ fontWeight: 300 }}>{device.deviceName}</span>
+        עריכת <span style={{ fontWeight: 300 }}>{device.settings.name}</span>
       </p>
       <br />
+      {/* Dynamic form */}
       {deviceFormTemplate.map((field) => (
         <Fragment key={field.field}>
           <p className="mb-0">{field.label}</p>
+          {console.log(field.field, formState[field.field])}
           {field.type === "checkbox" ? (
             <div className="d-flex align-items-right">
               <input
