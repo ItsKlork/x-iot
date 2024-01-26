@@ -1,15 +1,11 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { authProvider } from "../auth";
+import { useEffect, useContext } from "react";
+import { AuthContext } from "../App";
 
 function Logout(props) {
-  const navigate = useNavigate();
+  const auth = useContext(AuthContext);
   useEffect(() => {
-    (async () => {
-      await authProvider.signout();
-      navigate("/");
-    })();
-  }, [navigate]);
+    auth.signout();
+  }, [auth]);
 
   return (
     <div

@@ -1,10 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { authProvider } from "../auth";
 import SidebarItem from "./SidebarItem";
+import { useContext } from "react";
+import { AuthContext } from "../App";
 
 function Sidebar({ items }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { fullname } = useContext(AuthContext);
 
   function signout() {
     navigate("/logout");
@@ -38,7 +40,7 @@ function Sidebar({ items }) {
       </div>
 
       <div className="mt-auto m-4" style={{ fontSize: "1.2em" }}>
-        <p className="m-0">{authProvider.name}</p>
+        <p className="m-0">{fullname}</p>
         <p
           className="m-0 mt-1"
           style={{ cursor: "pointer", fontWeight: "600" }}

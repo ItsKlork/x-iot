@@ -1,78 +1,18 @@
 import "./App.css";
-import {
-  Outlet,
-  RouterProvider,
-  createBrowserRouter,
-  redirect,
-} from "react-router-dom";
-import { authProvider } from "./auth";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { createBrowserHistory } from "history";
+import { createContext, useContext, useEffect, useState } from "react";
 import Login from "./pages/login/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
-import Logout from "./components/Logout";
-import SidebarOutlet from "./components/SidebarOutlet";
 import Tenants from "./pages/tenants/Tenants";
 import Cameras from "./pages/cameras/Cameras";
 import Devices from "./pages/devices/Devices";
 import DeviceMenu from "./pages/devices/DeviceMenu";
+import SidebarOutlet from "./components/SidebarOutlet";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import programNavigate from "./history";
-import { useNavigate } from "react-router-dom";
-
-const NavigateSetter = () => {
-  programNavigate.navigate = useNavigate();
-
-  return <Outlet />;
-};
-
-const router = createBrowserRouter([
-  {
-    id: "root",
-    path: "/",
-    loader() {
-      // Our root route always provides the user, if logged in
-      return { user: authProvider.username };
-    },
-    Component: NavigateSetter,
-    children: [
-      {
-        index: true,
-        loader: loginLoader,
-        Component: Login,
-      },
-      {
-        path: "dashboard",
-        loader: protectedLoader,
-        Component: SidebarOutlet,
-        children: [
-          {
-            index: true, // "/dashboard"
-            Component: Dashboard,
-          },
-          {
-            path: "tenants", // "/dashboard/tenants"
-            Component: Tenants,
-          },
-          {
-            path: "cameras", // "/dashboard/cameras"
-            Component: Cameras,
-          },
-          {
-            path: "devices/:deviceId", // "/dashboard/devices/:deviceId"
-            Component: DeviceMenu,
-          },
-          {
-            path: "devices", // "/dashboard/devices"
-            Component: Devices,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: "/logout",
-    Component: Logout,
-  },
-]);
+import { WebSocketContext, WebSocketProvider } from "./components/WSContext";
+import { unstable_HistoryRouter as HistoryRouter } from "react-router-dom";
+import Logout from "./components/Logout";
 
 const darkTheme = createTheme({
   palette: {
@@ -80,32 +20,98 @@ const darkTheme = createTheme({
   },
 });
 
-async function loginLoader() {
-  if (authProvider.isAuthenticated) {
-    return redirect("/dashboard");
-  }
-  return null;
-}
+const browserHistory = createBrowserHistory();
 
-function protectedLoader({ request }) {
-  // If the user is not logged in and tries to access `/protected`, we redirect
-  // them to `/login` with a `from` parameter that allows login to redirect back
-  // to this page upon successful authentication
-  if (!authProvider.isAuthenticated) {
-    console.log("Failed to authenticate");
-    return redirect("/");
+function ProtectedPage({ children }) {
+  const auth = useContext(AuthContext);
+
+  if (!auth.isAuthenticated) {
+    return <Navigate to="/" />;
   }
-  return null;
+  return children;
 }
 
 function App() {
   return (
-    <ThemeProvider theme={darkTheme}>
-      <div style={{ fontFamily: "Heebo" }}>
-        <RouterProvider router={router} />
-      </div>
-    </ThemeProvider>
+    <WebSocketProvider>
+      <AuthProvider>
+        <HistoryRouter history={browserHistory}>
+          <div style={{ fontFamily: "Heebo" }}>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/logout" element={<Logout />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedPage>
+                    <ThemeProvider theme={darkTheme}>
+                      <SidebarOutlet />
+                    </ThemeProvider>
+                  </ProtectedPage>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="tenants" element={<Tenants />} />
+                <Route path="cameras" element={<Cameras />} />
+                <Route path="devices/:deviceId" element={<DeviceMenu />} />
+                <Route path="devices" element={<Devices />} />
+              </Route>
+            </Routes>
+          </div>
+        </HistoryRouter>
+      </AuthProvider>
+    </WebSocketProvider>
   );
 }
 
-export default App;
+let AuthContext = createContext(null);
+
+function AuthProvider({ children, wsp }) {
+  const [username, setUsername] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [fullname, setFullname] = useState(null);
+  const [error, setError] = useState(null);
+
+  const { subscribe, send } = useContext(WebSocketContext);
+
+  useEffect(() => {
+    // Attempt to read from cookies
+
+    subscribe("signout", (data) => {
+      browserHistory.push("/");
+    });
+
+    subscribe("auth", (data) => {
+      const response = JSON.parse(data);
+      if (response.status === "success") {
+        setIsAuthenticated(true);
+        setUsername(response.username);
+        setFullname(response.name);
+        setError(null);
+        browserHistory.push("/dashboard");
+      } else {
+        console.log(`Error: ${response.error}`);
+        setIsAuthenticated(false);
+        setUsername(null);
+        setFullname(null);
+        setError(response.error);
+      }
+    });
+  }, [subscribe]);
+
+  let signin = (username, password) => {
+    console.log(`Signing in as ${username}`);
+    send(JSON.stringify({ type: "auth", data: { username, password } }));
+  };
+
+  let signout = () => {
+    console.log(`Signing out as ${username}`);
+    send(JSON.stringify({ type: "signout" }));
+  };
+
+  let value = { username, fullname, isAuthenticated, error, signin, signout };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export { App, AuthContext };

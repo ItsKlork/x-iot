@@ -1,35 +1,16 @@
-import { useNavigate } from "react-router-dom";
-import { authProvider } from "../../auth";
 import "../../css/login.css";
-import { useEffect, useState } from "react";
-import server from "../../networkProtocol";
+import { useContext, useState } from "react";
+import { AuthContext } from "../../App";
+import Alert from "@mui/material/Alert";
 
 function Login(props) {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    server.registerListener("auth", (data) => {
-      const response = JSON.parse(data);
-      if (response.status === "success") {
-        authProvider.isAuthenticated = true;
-        authProvider.username = response.username;
-        authProvider.name = response.name;
-        navigate("/dashboard");
-      } else {
-        console.log(`Unable to authenticate: ${response.error}`);
-        alert(response.error);
-        authProvider.isAuthenticated = false;
-        authProvider.username = null;
-        authProvider.name = null;
-      }
-    });
-  }, [navigate]);
+  const { error, signin } = useContext(AuthContext);
 
   async function loginToApp() {
-    await authProvider.signin(username, password);
+    signin(username, password);
   }
   return (
     <div
@@ -65,7 +46,7 @@ function Login(props) {
         </div>
       </div>
       <div
-        className="d-flex align-items-center justify-content-center"
+        className="d-flex flex-column align-items-center justify-content-center"
         style={{ width: "50vw" }}
       >
         <div className="d-flex flex-column">
@@ -106,6 +87,11 @@ function Login(props) {
             התחבר
           </button>
         </div>
+        {error && (
+          <Alert severity="error" className="text-danger mt-4">
+            {error}
+          </Alert>
+        )}
       </div>
     </div>
   );
