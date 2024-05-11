@@ -1,69 +1,41 @@
 import { useContext, useEffect, useState } from "react";
 import UpdateItem from "./UpdateItem";
-import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
-import NoMeetingRoomIcon from "@mui/icons-material/NoMeetingRoom";
 import { WebSocketContext } from "../../components/WSContext";
+import { PacketTypes } from "../../packetTypes";
 
 function LatestUpdates(props) {
   const { subscribe, unsubscribe, send } = useContext(WebSocketContext);
 
-  const [updates, setUpdates] = useState([]);
+  const [notifications, setNotifications] = useState(undefined);
 
   useEffect(() => {
-    subscribe("update-st", (data) => {
-      // Update start
-      const response = JSON.parse(data);
-      if (response.status === "success") {
-        setUpdates(response.updates);
-      } else {
-        console.log(`Unable to get updates: ${response.error}`);
-      }
+    subscribe(PacketTypes.GET_NOTIFICATIONS_RESPONSE, (notifications) => {
+      notifications = JSON.parse(notifications);
+      console.log("Got notifications", notifications);
+      setNotifications(notifications);
     });
 
-    subscribe("update-rt", (data) => {
-      // Update-realtime
-      const response = JSON.parse(data);
-      if (response.status === "success") {
-        setUpdates(response.updates);
-      } else {
-        console.log(`Unable to get updates: ${response.error}`);
-      }
-    });
+    send(PacketTypes.GET_NOTIFICATIONS, {});
 
-    setUpdates([
-      {
-        message: "בן גביר נכנס הביתה",
-        time: 1701615148,
-        event_type: "door",
-        event_result: "success",
-        iconColor: "#93D6C2",
-        icon: MeetingRoomIcon,
-      },
-      {
-        message: "נחסם ניסיון כניסה בלתי מזוהה",
-        time: 1701615000,
-        event_type: "door",
-        event_result: "failed",
-        iconColor: "red",
-        icon: NoMeetingRoomIcon,
-      },
-    ]);
-  }, []);
+    return () => {
+      unsubscribe(PacketTypes.GET_NOTIFICATIONS_RESPONSE);
+    };
+  }, [subscribe, unsubscribe, send]);
 
   return (
     <div className="d-flex flex-column">
-      <p style={{ fontSize: "1.7em", fontWeight: "700" }}>עדכונים אחרונים</p>
-      {updates.length === 0 ? (
-        <p>אין עדכונים</p>
-      ) : (
-        updates.map((update) => (
+      <p style={{ fontSize: "1.7em", fontWeight: "700" }}>הודעות אחרונות</p>
+      {!notifications ? (
+        <p>טוען הודעות...</p>
+      ) : notifications.length > 0 ? (
+        notifications.map((notif) => (
           <UpdateItem
-            icon={update.icon}
-            iconColor={update.iconColor}
-            message={update.message}
-            key={update.message}
+            notification={notif}
+            key={notif.timestamp + notif.message}
           />
         ))
+      ) : (
+        <p>אין הודעות חדשות</p>
       )}
     </div>
   );

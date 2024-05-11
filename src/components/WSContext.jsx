@@ -7,17 +7,23 @@ function WebSocketProvider({ children }) {
   const ws = useRef(null);
   const channels = useRef({});
 
-  const subscribe = (channel, callback) => {
+  const subscribe = (pid, callback) => {
     // channel is limited to 10 characters
-    channels.current[channel] = callback;
+    console.log("SUBSCRIBED", pid);
+    if (pid in channels.current)
+      console.error(
+        `Packet ID ${pid} already has a function subscribed to it.`
+      );
+    channels.current[pid] = callback;
   };
 
-  const unsubscribe = (channel) => {
-    delete channels.current[channel];
+  const unsubscribe = (pid) => {
+    console.log("UNSUBSCRIBED", pid);
+    delete channels.current[pid];
   };
 
-  const send = (message) => {
-    ws.current.send(message);
+  const send = (pid, data) => {
+    ws.current.send(JSON.stringify({ pid: pid, data: data }));
   };
 
   useEffect(() => {
@@ -32,10 +38,11 @@ function WebSocketProvider({ children }) {
     };
 
     ws.current.onmessage = (e) => {
-      const channel = e.data.substring(0, 10).trim();
-      const data = e.data.substring(10);
-      if (channel in channels.current) {
-        channels.current[channel](data);
+      const pid = parseInt(e.data.substring(0, 3));
+      const data = e.data.substring(3);
+      console.log("Got", pid, data);
+      if (pid in channels.current) {
+        channels.current[pid](data);
       }
     };
   }, []);

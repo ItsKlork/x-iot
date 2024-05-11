@@ -18,10 +18,13 @@ function UserListItem(props) {
         className="me-3"
         style={{ margin: "0", fontWeight: "500", fontSize: "1.1em" }}
       >
-        {props.name}
+        {props.name} {props.activeUser && "(אתה)"}
       </p>
       <div
-        style={{ margin: "0", cursor: "pointer" }}
+        style={{
+          margin: "0",
+          cursor: "pointer",
+        }}
         className="align-self-stretch d-flex align-items-center m-2 me-4"
         onClick={props.onClick}
       >

@@ -4,189 +4,7 @@ import { Alert, Collapse } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import "../../css/devicemenu.css";
 import { WebSocketContext } from "../../components/WSContext";
-
-const deviceDataDummy = [
-  {
-    deviceName: "מצלמה 1",
-    deviceType: "camera",
-    uuid: "e3849810-f41d-41e3-9447-336e1905b936",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: true,
-    },
-  },
-  {
-    deviceName: "מצלמה 2",
-    deviceType: "camera",
-    uuid: "06c64f00-8cc4-4510-aa22-928b0d001f5a",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "5a9ae3e9-84b4-4c37-88a2-bfee5db44654",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "466799f8-0d84-4c8a-b5f2-283f5bd89dbe",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 1",
-    deviceType: "camera",
-    uuid: "933283cb-c0c0-4739-aaa0-0d4321469b32",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 2",
-    deviceType: "camera",
-    uuid: "c923e9bc-e20a-4eea-8c43-f2e7b884d255",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "e4473eb1-09a3-40ea-8f94-d4246b579bf7",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "54b3a0a4-bf78-49c8-98d1-d7d5df36cd17",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 1",
-    deviceType: "camera",
-    uuid: "9af01b53-80ea-4223-9d21-19439da2b3c9",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 2",
-    deviceType: "camera",
-    uuid: "c6bf9bf8-8c5d-451c-ae8f-a611c45969bd",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "3a846e59-f686-4464-8a99-12ce54514712",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "06284f60-230f-49c0-9281-50a97a2f4281",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 1",
-    deviceType: "camera",
-    uuid: "82308ba1-9e22-44b6-9323-cde29b7dd5bf",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 2",
-    deviceType: "camera",
-    uuid: "63834360-a8d2-4581-aaa6-ded594a24b8f",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "36e1fe7d-1de7-4aaf-b345-8ab52fc5a20c",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "355ed91d-4621-4928-9f23-1768745112f9",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 1",
-    deviceType: "camera",
-    uuid: "00176984-65c7-4037-9af8-a31289c7041f",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "מצלמה 2",
-    deviceType: "camera",
-    uuid: "55260ed9-a73f-47f6-86b1-cc3df8942ace",
-    iconColor: "#d2edfc",
-    state: {
-      face_recognition: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "8897349b-6756-4745-b11d-56691ec02675",
-    iconColor: "#b38f6b",
-    settings: {
-      open_state: false,
-    },
-  },
-  {
-    deviceName: "דלת כניסה",
-    deviceType: "door",
-    uuid: "ca2495c3-d6bf-4cac-926e-ee1e756f8876",
-    iconColor: "#b38f6b",
-    state: {
-      open_state: false,
-    },
-  },
-];
+import { PacketTypes } from "../../packetTypes";
 
 const formTypes = {
   CAMERA: [
@@ -196,16 +14,27 @@ const formTypes = {
       label: "שם המצלמה",
     },
     {
+      field: "targetDoorLock",
+      type: "text",
+      label:
+        "מזהה של מנהול היעד עבור זיהוי הפנים (מזהה שלא בשימוש=לא לפתוח אף דלת)",
+    },
+    {
       field: "faceRecognition",
       type: "checkbox",
       label: "הפעל זיהוי פנים",
+    },
+    {
+      field: "httpPort",
+      type: "number",
+      label: "פורט HTTP (דורש הפעלה מחדש)",
     },
   ],
   DOOR_LOCK: [
     {
       field: "name",
       type: "text",
-      label: "שם הדלת",
+      label: "שם המנעול",
     },
     {
       field: "openState",
@@ -213,11 +42,27 @@ const formTypes = {
       label: "פתח/סגור דלת",
     },
   ],
+  AIRCON: [
+    { field: "name", type: "text", label: "שם המזגן" },
+    { field: "temperature", type: "number", label: "טמפרטורה" },
+    { field: "isOn", type: "checkbox", label: "פתוח/סגור" },
+  ],
+  WATER_HEATER: [
+    { field: "name", type: "text", label: "שם הדוד" },
+    { field: "isOn", type: "checkbox", label: "דלוק/כבוי" },
+    {
+      field: "timer",
+      type: "datetime-local",
+      label: "טיימר (ברגע שהתאריך והשעה מגיעים, הדוד נדלק לבד)",
+    },
+  ],
+  LIGHT: [
+    { field: "name", type: "text", label: "שם גוף התאורה" },
+    { field: "isOn", type: "checkbox", label: "דלוק/כבוי" },
+    { field: "brightness", type: "number", label: "בהירות" },
+    { field: "color", type: "color", label: "צבע" },
+  ],
 };
-
-function findDevice(uuid) {
-  return deviceDataDummy.find((device) => device.uuid === uuid);
-}
 
 function DeviceMenu(props) {
   const { deviceId } = useParams();
@@ -227,25 +72,16 @@ function DeviceMenu(props) {
 
   const navigate = useNavigate();
 
-  const { subscribe, send } = useContext(WebSocketContext);
+  const { subscribe, send, unsubscribe } = useContext(WebSocketContext);
 
   async function saveDeviceSettings(e) {
-    console.log("Saving", formState);
+    console.log("Saving", formState, device);
     setMessage({ type: "info", message: "שומר..." });
-    send(
-      JSON.stringify({
-        type: "module",
-        module_uuid: "41747d8e-a73d-4087-b0d6-fe680cc31c00",
-        data: {
-          action: "set_device_settings",
-          device_uuid: deviceId,
-          settings: formState,
-        },
-      })
-    );
-    //await new Promise((resolve) => setTimeout(resolve, 1000));
+    send(PacketTypes.SET_DEVICE_SETTINGS, {
+      device_uuid: deviceId,
+      settings: { type: device.deviceType, ...formState },
+    });
     setMessage({ type: "success", message: "הגדרות המכשיר נשמרו בהצלחה" });
-    // setMessage({ type: "error", message: "לא ניתן לקרוא למכשיר בשם זה" });
   }
 
   useEffect(() => {
@@ -253,7 +89,7 @@ function DeviceMenu(props) {
       navigate("/devices");
       return;
     }
-    subscribe("device", (data) => {
+    subscribe(PacketTypes.GET_DEVICE_RESPONSE, (data) => {
       const currentDevice = JSON.parse(data);
       console.log("device got", currentDevice);
       const formTemplate = formTypes[currentDevice.deviceType];
@@ -265,14 +101,12 @@ function DeviceMenu(props) {
       setFormState(formStateBuilder);
     });
 
-    send(
-      JSON.stringify({
-        type: "module",
-        module_uuid: "41747d8e-a73d-4087-b0d6-fe680cc31c00",
-        data: { action: "get_device", device_uuid: deviceId },
-      })
-    );
-  }, [deviceId, navigate, send, subscribe]);
+    send(PacketTypes.GET_DEVICE, { device_uuid: deviceId });
+
+    return () => {
+      unsubscribe(PacketTypes.GET_DEVICE_RESPONSE);
+    };
+  }, [deviceId, navigate, send, subscribe, unsubscribe]);
 
   if (!device)
     return (
@@ -282,10 +116,25 @@ function DeviceMenu(props) {
     );
 
   const deviceFormTemplate = formTypes[device.deviceType];
+  console.log(device);
   return (
     <div className="m-4">
-      <p className="mb-0" style={{ fontWeight: 700, fontSize: "1.2em" }}>
+      <p
+        className="mb-0"
+        style={{ fontWeight: 700, fontSize: "1.2em", display: "inline-block" }}
+      >
         עריכת <span style={{ fontWeight: 300 }}>{device.settings.name}</span>
+      </p>
+      <p
+        className="me-3"
+        style={{
+          fontWeight: 200,
+          direction: "ltr",
+          display: "inline-block",
+          fontSize: "0.9em",
+        }}
+      >
+        {device.deviceUUID}
       </p>
       <br />
       {/* Dynamic form */}
@@ -319,6 +168,9 @@ function DeviceMenu(props) {
               }}
             />
           )}
+          {(field.type === "datetime-local" ||
+            field.type === "color" ||
+            field.type === "number") && <br />}
         </Fragment>
       ))}
       <button className="mt-2 btn btn-dark" onClick={saveDeviceSettings}>

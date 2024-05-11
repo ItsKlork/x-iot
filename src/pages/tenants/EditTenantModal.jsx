@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Box, Modal } from "@mui/material";
+import { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Box, Collapse, Modal, Switch } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { WebSocketContext } from "../../components/WSContext";
+import { PacketTypes } from "../../packetTypes";
 
 const style = {
   position: "absolute",
@@ -19,66 +21,170 @@ function EditTenantModal(props) {
 
   const [open, setOpen] = props.openState;
   const isNew = props.newTenant;
-  const selectedUser = props.selectedUser;
-  const [fullName, setFullName] = useState(
-    selectedUser !== undefined ? selectedUser.fullName : ""
-  );
-  const [face, setFace] = useState(
-    selectedUser !== undefined
-      ? { faceDataType: selectedUser.faceDataType, face: selectedUser.face }
-      : undefined
-  );
+
+  const [fullName, setFullName] = useState("");
+  const [face, setFace] = useState(undefined);
+  const [isWebUser, setIsWebUser] = useState(false);
+  const [webUsername, setWebUsername] = useState("");
+  const [webPassword, setWebPassword] = useState("");
+
+  const [submissionStatus, setSubmissionStatus] = useState(undefined);
+
+  const [prevOpen, setPrevOpen] = useState(props.openState);
+
+  const { send, subscribe, unsubscribe } = useContext(WebSocketContext);
 
   useEffect(() => {
-    setFullName(selectedUser !== undefined ? selectedUser.fullName : "");
-    setFace(
-      selectedUser !== undefined
-        ? { faceDataType: selectedUser.faceDataType, face: selectedUser.face }
-        : undefined
-    );
-  }, [selectedUser]);
-  /*
-    {
-          faceDataType: "image/jpeg",
-          face: "/9j/4AAQSkZJRgABAQAAAQABAAD",
+    const selectedTenant = props.selectedUser;
+    if (selectedTenant !== undefined) {
+      setFullName(selectedTenant.fullName);
+      setFace({
+        faceDataType: selectedTenant.faceDataType,
+        face: selectedTenant.face,
+      });
+      if (selectedTenant.webUser) {
+        setIsWebUser(true);
+        setWebUsername(selectedTenant.username);
+      }
     }
-   */
+
+    const editOrDeleteResponseHandler = function (data) {
+      data = JSON.parse(data);
+      if (data.response === "success") {
+        setOpen(false);
+        setFullName("");
+        setFace(undefined);
+        setIsWebUser(false);
+        setWebUsername("");
+        setWebPassword("");
+        setSubmissionStatus(undefined);
+        if ("onClose" in props) props.onClose();
+      } else if (data.response === "error") setSubmissionStatus(data.error);
+    };
+    console.log(prevOpen, open);
+    if (prevOpen !== open) {
+      if (open) {
+        subscribe(
+          PacketTypes.UPDATE_TENANT_RESPONSE,
+          editOrDeleteResponseHandler
+        );
+        subscribe(
+          PacketTypes.REMOVE_TENANT_RESPONSE,
+          editOrDeleteResponseHandler
+        );
+        subscribe(PacketTypes.ADD_TENANT_RESPONSE, editOrDeleteResponseHandler);
+      } else {
+        unsubscribe(PacketTypes.UPDATE_TENANT_RESPONSE);
+        unsubscribe(PacketTypes.REMOVE_TENANT_RESPONSE);
+        unsubscribe(PacketTypes.ADD_TENANT_RESPONSE);
+      }
+      setPrevOpen(open);
+    }
+  }, [
+    props.selectedUser,
+    subscribe,
+    setOpen,
+    props,
+    unsubscribe,
+    open,
+    prevOpen,
+  ]);
 
   function closeModal() {
     setOpen(false);
     setFullName("");
     setFace(undefined);
+    setIsWebUser(false);
+    setWebUsername("");
+    setWebPassword("");
+    setSubmissionStatus(undefined);
 
     if ("onClose" in props) props.onClose();
   }
 
+  function toggleWebUser() {
+    if (isWebUser) {
+      setWebUsername("");
+      setWebPassword("");
+    }
+    setIsWebUser(!isWebUser);
+  }
+
   function removeTenant() {
-    alert("TODO: remove tenant");
+    setSubmissionStatus("מוחק...");
+    send(PacketTypes.REMOVE_TENANT, { uuid: props.selectedUser.uuid });
+  }
+
+  function updateTenant() {
+    // Update an existing tenant
+    setSubmissionStatus("מעדכן...");
+    send(PacketTypes.UPDATE_TENANT, {
+      uuid: props.selectedUser.uuid,
+      fullName: fullName !== props.selectedUser.fullName ? fullName : undefined,
+      updatedPassword:
+        isWebUser && webPassword.trim().length !== 0 ? webPassword : undefined,
+      webUser: isWebUser,
+      face: face.face !== props.selectedUser.face ? face.face : undefined,
+      faceDataType:
+        face.faceDataType !== props.selectedUser.face
+          ? face.faceDataType
+          : undefined,
+      webUsername:
+        isWebUser && face.webUsername !== webUsername ? webUsername : undefined,
+    });
   }
 
   function addTenant() {
+    setSubmissionStatus("מוסיף...");
+    let newTenantObject = {
+      fullName: fullName,
+      webUser: isWebUser,
+      face: face.face,
+      faceDataType: face.faceDataType,
+    };
+    if (isWebUser) {
+      newTenantObject["webUsername"] = webUsername;
+      newTenantObject["webPassword"] = webPassword;
+    }
+    send(PacketTypes.ADD_TENANT, newTenantObject);
+  }
+
+  function addOrUpdateTenant() {
     if (fullName === "") {
-      alert("נא למלא שם מלא.");
+      setSubmissionStatus("נא למלא שם מלא.");
       return;
     }
     if (face === undefined) {
-      alert("נא להוסיף תמונת פרצוף.");
+      setSubmissionStatus("נא להוסיף תמונת פרצוף.");
       return;
     }
-    // TODO: communicate with server
-    // TODO: reload user list if successful
-    closeModal();
+    if (isWebUser && webUsername.trim().length === 0) {
+      setSubmissionStatus("לדייר בעל חשבון צריך להיות שם משתמש.");
+      return;
+    }
+    if (isWebUser && !props.selectedUser && webPassword.trim().length === 0) {
+      setSubmissionStatus("חייב לקבוע סיסמה לדייר.");
+      return;
+    }
+
+    if (props.selectedUser) {
+      updateTenant();
+    } else {
+      // Create a new tenant
+      addTenant();
+    }
   }
 
   // File handling
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
+  const toBase64 = (file) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () =>
         resolve(reader.result.substr(reader.result.indexOf(",") + 1));
       reader.onerror = reject;
     });
+  };
 
   async function selectedFile(e) {
     const file = e.target.files[0];
@@ -94,13 +200,7 @@ function EditTenantModal(props) {
   function removeFace() {
     setFace(undefined);
   }
-  console.log(
-    selectedUser,
-    selectedUser !== undefined ? selectedUser.fullName : "",
-    selectedUser !== undefined
-      ? { faceDataType: selectedUser.faceDataType, face: selectedUser.face }
-      : undefined
-  );
+
   return (
     <Modal open={open} onClose={closeModal}>
       <Box sx={style}>
@@ -120,7 +220,61 @@ function EditTenantModal(props) {
             }}
           />
           <hr className="my-4" />
+          <p className="mb-1 mt-4">חשבון באתר</p>
+          <Switch checked={isWebUser} onChange={toggleWebUser} />
+          {isWebUser && (
+            <>
+              <hr className="my-2" />
+              <p
+                className="mb-1 mt-4"
+                style={{ fontWeight: "bold", fontSize: "1.1em" }}
+              >
+                פרטי חשבון באתר{" "}
+                <span style={{ fontStyle: "italic" }}>(באנגלית)</span>
+              </p>
+              <p className="mb-1 mt-4">שם משתמש</p>
+              <input
+                value={webUsername}
+                className="ps-2"
+                onChange={(e) => setWebUsername(e.target.value)}
+                style={{
+                  backgroundColor: "rgb(27, 28, 49)",
+                  border: "0",
+                  direction: "ltr",
+                  textAlign: "left",
+                  color: "white",
+                }}
+              />
+              <p className="mb-1 mt-3">
+                סיסמה {props.selectedUser && "(סיסמה ריקה=ללא שינוי)"}
+              </p>
+              <input
+                value={webPassword === null ? "" : webPassword}
+                className="ps-2"
+                type="password"
+                onChange={(e) => setWebPassword(e.target.value)}
+                style={{
+                  backgroundColor: "rgb(27, 28, 49)",
+                  border: "0",
+                  direction: "ltr",
+                  textAlign: "left",
+                  color: "white",
+                }}
+              />
+            </>
+          )}
+          <hr className="my-4" />
           <p className="mb-2 mt-4">תמונת פרצוף</p>
+          <p
+            style={{
+              fontStyle: "italic",
+              color: "lightgray",
+              fontSize: "0.8em",
+            }}
+          >
+            על מנת שעדכון תמונת הפרצוף של הדייר תעבוד עם זיהוי הפנים, יש להפעיל
+            מחדש את המצלמות.
+          </p>
           {face !== undefined ? (
             <div className="mt-3" style={{ position: "relative" }}>
               <img
@@ -184,7 +338,7 @@ function EditTenantModal(props) {
           <hr className="my-4" />
           <button
             className="btn btn-dark"
-            onClick={addTenant}
+            onClick={addOrUpdateTenant}
             style={{
               backgroundColor: "rgb(27, 28, 49)",
               fontWeight: 600,
@@ -205,6 +359,21 @@ function EditTenantModal(props) {
               מחק דייר
             </button>
           )}
+          <Collapse in={!!submissionStatus}>
+            {submissionStatus && (
+              <Alert
+                severity={
+                  submissionStatus === "מוחק..." ||
+                  submissionStatus === "מעדכן..."
+                    ? "info"
+                    : "error"
+                }
+                className="mt-5 align-items-center"
+              >
+                {submissionStatus}
+              </Alert>
+            )}
+          </Collapse>
         </div>
       </Box>
     </Modal>

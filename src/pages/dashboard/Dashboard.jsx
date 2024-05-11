@@ -1,6 +1,6 @@
 import React from "react";
 import LatestUpdates from "./LatestUpdates";
-import ActiveDevices from "../../components/ActiveDevices";
+import DeviceList from "../../components/DeviceList";
 
 function Dashboard(props) {
   return (
@@ -9,7 +9,7 @@ function Dashboard(props) {
         <LatestUpdates />
       </div>
       <div className="col" style={{ margin: "60px" }}>
-        <ActiveDevices listLimit={5} showTitle />
+        <DeviceList listLimit={5} showTitle onlyActive />
       </div>
     </div>
   );

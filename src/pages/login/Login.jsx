@@ -1,5 +1,5 @@
 import "../../css/login.css";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../App";
 import Alert from "@mui/material/Alert";
 
@@ -12,6 +12,24 @@ function Login(props) {
   async function loginToApp() {
     signin(username, password);
   }
+
+  useEffect(() => {
+    const keyDownHandler = (event) => {
+      // Attempt login on enter key
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (password.length !== 0 && username.length !== 0)
+          signin(username, password);
+      }
+    };
+
+    document.addEventListener("keydown", keyDownHandler);
+
+    return () => {
+      document.removeEventListener("keydown", keyDownHandler);
+    };
+  }, [signin, password, username]);
+
   return (
     <div
       style={{ height: "100vh", width: "100vw", direction: "rtl" }}

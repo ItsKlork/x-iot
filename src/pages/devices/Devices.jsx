@@ -1,10 +1,11 @@
 import { IconButton } from "@mui/material";
-import ActiveDevices from "../../components/ActiveDevices";
+import DeviceList from "../../components/DeviceList";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
-import { useState } from "react";
-import { v4 as uuidv4 } from "uuid";
+import { useContext, useEffect, useState } from "react";
+import { WebSocketContext } from "../../components/WSContext";
+import { PacketTypes } from "../../packetTypes";
 
 const style = {
   position: "absolute",
@@ -26,6 +27,8 @@ function Devices(props) {
   const [newDeviceName, setNewDeviceName] = useState("");
   const [newDeviceType, setNewDeviceType] = useState("");
 
+  const { subscribe, send, unsubscribe } = useContext(WebSocketContext);
+
   function openAddDeviceModal() {
     setNewDeviceModalOpen(true);
   }
@@ -39,17 +42,29 @@ function Devices(props) {
   }
 
   function fetchNewDeviceUUID() {
-    (async () => {
-      await new Promise((r) => setTimeout(r, 1000));
-      setNewDeviceUUID(uuidv4());
-      setNewDeviceSecret("SuperSecretKey");
-    })();
+    send(PacketTypes.CREATE_DEVICE, {
+      device_name: newDeviceName,
+      device_type: newDeviceType,
+    });
   }
+
+  useEffect(() => {
+    subscribe(PacketTypes.CREATE_DEVICE_RESPONSE, (data) => {
+      const response = JSON.parse(data);
+      if (!response) return;
+      setNewDeviceSecret(response.secret);
+      setNewDeviceUUID(response.deviceUUID);
+    });
+
+    return () => {
+      unsubscribe(PacketTypes.CREATE_DEVICE_RESPONSE);
+    };
+  }, [subscribe, unsubscribe]);
 
   return (
     <div className="h-100 position-relative" style={{ padding: "60px" }}>
       <p style={{ fontSize: "1.7em", fontWeight: "700" }}>מכשירים</p>
-      <ActiveDevices seperator />
+      <DeviceList seperator />
       <IconButton
         aria-label="delete"
         className="position-absolute"
@@ -70,19 +85,28 @@ function Devices(props) {
           >
             {newDeviceUUID ? (
               <>
-                <p className="mb-1">מספר הזיהוי של המכשיר הוא</p>
+                <p className="mb-1">מספר הזיהוי של המכשיר</p>
                 <p
                   style={{ backgroundColor: "rgb(27, 28, 49)" }}
-                  className="mb-3 p-1"
+                  className="mb-3 p-1 pe-2"
                 >
                   {newDeviceUUID}
                 </p>
-                <p className="mb-1">המזהה הסודי של המכשיר הוא</p>
+                <p className="mb-1">המזהה הסודי של המכשיר</p>
                 <p
-                  className="p-1"
+                  className="p-1 mb-4 pe-2"
                   style={{ backgroundColor: "rgb(27, 28, 49)" }}
                 >
                   {newDeviceSecret}
+                </p>
+                <p
+                  className="mb-1 text-danger text-center"
+                  style={{ fontStyle: "italic" }}
+                >
+                  <span style={{ fontWeight: "700", fontStyle: "normal" }}>
+                    שים לב!
+                  </span>{" "}
+                  חשוב לשמור על המזהה הסודי. לא ניתן לשחזר את המזהה בהמשך.
                 </p>
               </>
             ) : (
@@ -109,11 +133,11 @@ function Devices(props) {
                   onChange={(e) => setNewDeviceType(e.target.value)}
                 >
                   <option value="">סוג המכשיר</option>
-                  <option value="camera">מצלמה</option>
-                  <option value="door">דלת</option>
-                  <option value="aircon">מזגן</option>
-                  <option value="water-heater">דוד</option>
-                  <option value="light">תאורה</option>
+                  <option value="CAMERA">מצלמה</option>
+                  <option value="DOOR_LOCK">מנעול דלת</option>
+                  <option value="AIRCON">מזגן</option>
+                  <option value="WATER_HEATER">דוד</option>
+                  <option value="LIGHT">תאורה</option>
                 </select>
                 <br />
                 <button
